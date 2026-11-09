@@ -189,7 +189,7 @@ if (surfaces.includes("echo")) {
           state.echo = -1;
           nextFrame().then(() => { state.echo = performance.now(); state.visible = document.visibilityState === "visible"; });
         }
-        if (state.ack === undefined && /Working for \d/.test(document.querySelector("main")?.innerText ?? "")) state.ack = performance.now();
+        if (state.ack === undefined && /Working for \\d/.test(document.querySelector("main")?.innerText ?? "")) state.ack = performance.now();
         if (user && state.model === undefined) {
           const rows = [...document.querySelectorAll("[data-timeline-row-id]")];
           const after = rows.slice(rows.indexOf(user) + 1).find((row) => row.getAttribute("data-message-role") === "assistant" && row.innerText.trim().length > 0);
