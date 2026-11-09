@@ -28,6 +28,13 @@ Rules: no `@t3tools/*` scope is renamed. New code goes in new files. An upstream
 | `docs/garisek/SCOUT.md`                        | Scouting record                                                                                                                      |
 | `docs/garisek/DELTA.md`                        | This file                                                                                                                            |
 | `docs/garisek/receipts/`                       | Probe and smoke receipts                                                                                                             |
+| `packages/omp-acp/package.json` | ACP bridge package (check AC1) |
+| `packages/omp-acp/tsconfig.json` | Turns off Effect diagnostics that don't apply to a standalone stdio process |
+| `packages/omp-acp/bin/garisek-omp-acp.ts` | Executable: OMP ACP bridge entry point |
+| `packages/omp-acp/src/omp-process.ts` | Spawns `omp --mode rpc`, handles v2 negotiation, session identity and the event queue |
+| `packages/omp-acp/src/agent.ts` | ACP v2 agent: maps the ACP session/prompt lifecycle onto OMP RPC events |
+| `packages/omp-acp/src/agent.test.ts` | Behavior test against a stand-in OMP, driven by the effect-acp client |
+| `packages/omp-acp/src/agent.live.test.ts` | Live test gated by `GARISEK_LIVE_OMP=1` |
 
 ## Upstream files changed
 

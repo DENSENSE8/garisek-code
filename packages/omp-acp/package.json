@@ -1,0 +1,23 @@
+{
+  "name": "@t3tools/omp-acp",
+  "private": true,
+  "bin": {
+    "garisek-omp-acp": "./bin/garisek-omp-acp.ts"
+  },
+  "type": "module",
+  "scripts": {
+    "typecheck": "effect-tsgo tsrs --noEmit",
+    "test": "vp test run --config ../../vite.config.ts --dir ."
+  },
+  "dependencies": {
+    "@effect/platform-node": "catalog:",
+    "@t3tools/provider-omp": "workspace:*",
+    "effect": "catalog:",
+    "effect-acp": "workspace:*"
+  },
+  "devDependencies": {
+    "@effect/vitest": "catalog:",
+    "@types/node": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

@@ -49,6 +49,10 @@
       // The Pi driver spawns this executable by path (Garisek fork).
       "entry": ["bin/garisek-omp-rpc.ts"],
     },
+    "packages/omp-acp": {
+      // The ACP bridge process spawned by T3 to drive OMP over ACP (Garisek fork, check AC1).
+      "entry": ["bin/garisek-omp-acp.ts"],
+    },
     "apps/server": {
       // Vite+ pack entries and the launcher used by installed background services.
       "entry": [
