@@ -193,15 +193,31 @@ export const formatHeadlessServeOutput = (accessInfo: HeadlessServeAccessInfo): 
     "",
   ].join("\n");
 
-export const issueHeadlessServeAccessInfo = Effect.fn("issueHeadlessServeAccessInfo")(function* () {
+// Without a terminal on stdout (systemd, a log file) a printed credential only lands in logs, so
+// headless startup then mints none and points at `t3 pair` instead.
+export const formatHeadlessServeReadyOutput = (connectionString: string): string =>
+  [
+    "T3 Code server is ready.",
+    `Connection string: ${connectionString}`,
+    "Stdout is not a terminal, so no pairing credential was minted. Run `t3 pair` to create one.",
+    "",
+  ].join("\n");
+
+export const resolveHeadlessServeConnectionString = Effect.fn(
+  "resolveHeadlessServeConnectionString",
+)(function* () {
   const serverConfig = yield* ServerConfig.ServerConfig;
   const httpServer = yield* HttpServer.HttpServer;
-  const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
-  const connectionString = resolveHeadlessConnectionString(
+  return resolveHeadlessConnectionString(
     serverConfig.host,
     resolveListeningPort(httpServer.address, serverConfig.port),
     { privateNetworkOnly: serverConfig.privateNetworkOnly },
   );
+});
+
+export const issueHeadlessServeAccessInfo = Effect.fn("issueHeadlessServeAccessInfo")(function* () {
+  const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
+  const connectionString = yield* resolveHeadlessServeConnectionString();
   const issued = yield* serverAuth.issueStartupPairingCredential();
 
   return {
