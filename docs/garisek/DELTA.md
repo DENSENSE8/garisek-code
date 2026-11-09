@@ -14,6 +14,7 @@ Rules: no `@t3tools/*` scope is renamed. New code goes in new files. An upstream
 | `packages/provider-omp/bin/garisek-omp-rpc.ts` | Executable the Pi driver spawns in place of `pi`                                                                                     |
 | `packages/provider-omp/src/dialect.ts`         | Translates the OMP RPC dialect into Pi's (settle, commands, queue, compaction, v2 chunking)                                          |
 | `packages/provider-omp/src/shim.ts`            | Spawns `omp` and pipes the translated JSONL in both directions                                                                       |
+| `packages/provider-omp/src/lease.ts`           | Single-writer check shared by the RPC shim and the ACP bridge: is a live omp holding this session's lease?                           |
 | `packages/provider-omp/src/dialect.test.ts`    | Dialect behavior tests                                                                                                               |
 | `packages/provider-omp/src/shim.test.ts`       | End-to-end subprocess test against a stand-in OMP                                                                                    |
 | `scripts/garisek/test-all.sh`                  | Per-package test runner that keeps going past a failure, for baselines                                                               |
@@ -28,21 +29,22 @@ Rules: no `@t3tools/*` scope is renamed. New code goes in new files. An upstream
 | `docs/garisek/SCOUT.md`                        | Scouting record                                                                                                                      |
 | `docs/garisek/DELTA.md`                        | This file                                                                                                                            |
 | `docs/garisek/receipts/`                       | Probe and smoke receipts                                                                                                             |
-| `packages/omp-acp/package.json` | ACP bridge package (check AC1) |
-| `packages/omp-acp/tsconfig.json` | Turns off Effect diagnostics that don't apply to a standalone stdio process |
-| `packages/omp-acp/bin/garisek-omp-acp.ts` | Executable: OMP ACP bridge entry point |
-| `packages/omp-acp/src/omp-process.ts` | Spawns `omp --mode rpc`, handles v2 negotiation, session identity and the event queue |
-| `packages/omp-acp/src/agent.ts` | ACP v2 agent: maps the ACP session/prompt lifecycle onto OMP RPC events |
-| `packages/omp-acp/src/agent.test.ts` | Behavior test against a stand-in OMP, driven by the effect-acp client |
-| `packages/omp-acp/src/agent.live.test.ts` | Live test gated by `GARISEK_LIVE_OMP=1` |
+| `packages/omp-acp/package.json`                | ACP bridge package (check AC1)                                                                                                       |
+| `packages/omp-acp/tsconfig.json`               | Turns off Effect diagnostics that don't apply to a standalone stdio process                                                          |
+| `packages/omp-acp/bin/garisek-omp-acp.ts`      | Executable: OMP ACP bridge entry point                                                                                               |
+| `packages/omp-acp/src/omp-process.ts`          | Spawns `omp --mode rpc`, handles v2 negotiation, session identity and the event queue                                                |
+| `packages/omp-acp/src/agent.ts`                | ACP v2 agent: maps the ACP session/prompt lifecycle onto OMP RPC events                                                              |
+| `packages/omp-acp/src/agent.test.ts`           | Behavior test against a stand-in OMP, driven by the effect-acp client                                                                |
+| `packages/omp-acp/src/agent.live.test.ts`      | Live test gated by `GARISEK_LIVE_OMP=1`                                                                                              |
+| `scripts/garisek/omp-acp-receipt.mjs`          | AC1 receipt probe: ACP v2 JSON-RPC against real OMP (new-session read, live-session refusal, closed-session resume)                  |
 
 ## Upstream files changed
 
 | File                                                                                               | Change                                                                                                                                                                                      |
 | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/shared/package.json`                                                                     | Adds the `./garisekBrand` export                                                                                                                                                            |
-| `knip.jsonc`                                                                                       | Entries for `scripts/garisek/*.mjs` and the provider-omp executable                                                                                                                         |
-| `pnpm-lock.yaml`                                                                                   | Workspace entry for `@t3tools/provider-omp`                                                                                                                                                 |
+| `knip.jsonc`                                                                                       | Entries for `scripts/garisek/*.mjs` and the provider-omp and omp-acp executables                                                                                                            |
+| `pnpm-lock.yaml`                                                                                   | Workspace entries for `@t3tools/provider-omp` and `@t3tools/omp-acp`                                                                                                                        |
 | `apps/web/index.html`                                                                              | `<title>`, splash label and logo alt say Garisek                                                                                                                                            |
 | `apps/web/src/branding.ts`                                                                         | Base name from the brand module; production stage `Latest`, so the display name is just "Garisek"                                                                                           |
 | `apps/web/src/components/chat/TimelineAssistantRows.tsx`                                           | Assistant author heading uses `APP_BASE_NAME`                                                                                                                                               |

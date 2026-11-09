@@ -1,0 +1,49 @@
+{
+  "takenAt": "2026-11-09T08:06:26.782Z",
+  "model": "anthropic/claude-haiku-5-5",
+  "thinking": "off",
+  "token": "ac1-d7c70e605728",
+  "bridge": "/home/michaelgarisek/Projects/garisek-code-wt/omp-acp/packages/omp-acp/bin/garisek-omp-acp.ts",
+  "permissionRequests": [],
+  "checks": {
+    "new-session-read": {
+      "pass": true,
+      "sessionFile": "/home/michaelgarisek/.omp/agent/sessions/-tmp-garisek-ac1-k4bBLl/2026-11-09T08-06-05-220Z_01a1bf57-cea4-73d2-972e-b15d18249cf4.jsonl",
+      "linesAfter": 14,
+      "tokenInFile": true,
+      "stopReason": "end_turn",
+      "reply": "ac1-d7c70e605728",
+      "tools": ["read"]
+    },
+    "live-session-refused": {
+      "pass": true,
+      "sessionFile": "/home/michaelgarisek/.omp/agent/sessions/-Projects-Garisek-OS/2026-11-07T23-50-23-605Z_01a1b86b-a075-7150-9490-db90c1e02ae8.jsonl",
+      "error": {
+        "_tag": "Cause",
+        "code": -32002,
+        "message": "Session 01a1b86b-a075-7150-9490-db90c1e02ae8 is being written by another live omp process; it stays read-only until that process exits.",
+        "data": [
+          {
+            "_tag": "Fail",
+            "error": {
+              "code": -32002,
+              "message": "Session 01a1b86b-a075-7150-9490-db90c1e02ae8 is being written by another live omp process; it stays read-only until that process exits.",
+              "data": {
+                "reason": "session_in_use"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "closed-session-resumed": {
+      "pass": true,
+      "sessionFile": "/home/michaelgarisek/.omp/agent/sessions/-Projects-Garisek-OS/2026-11-08T00-49-28-694Z_01a1b8a1-b876-75d5-b119-cf97ce5abf63.jsonl",
+      "linesBefore": 10,
+      "linesAfter": 15,
+      "stopReason": "end_turn",
+      "reply": "ac1-resume-2e9426b3",
+      "tools": []
+    }
+  }
+}

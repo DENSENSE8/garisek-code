@@ -1,7 +1,7 @@
 // Runs `omp` where T3's Pi driver expects `pi`: argv passes through unchanged; in `--mode rpc`
 // the JSONL stream is translated by OmpDialect in both directions.
 import * as NodeChildProcess from "node:child_process";
-import * as NodeFS from "node:fs";
+import { liveSessionOwner, SESSION_IN_USE } from "./lease.ts";
 import {
   ChunkAssembler,
   NEGOTIATE_ID,
@@ -115,7 +115,7 @@ export function runShim(argv: ReadonlyArray<string>, binary: string): void {
           command: "switch_session",
           success: false,
           error: {
-            code: "session_in_use",
+            code: SESSION_IN_USE,
             message: `Session ${owner} is being written by another live omp process; it stays read-only until that process exits.`,
           },
         });
@@ -129,47 +129,6 @@ export function runShim(argv: ReadonlyArray<string>, binary: string): void {
     if (held === null) childIn.end();
   });
   childIn.on("error", () => {});
-}
-
-// Single-writer rule (check O3): OMP leases each session it writes. Attaching to a leased
-// session would make OMP fork it to a sibling file, so the host is refused instead.
-function liveSessionOwner(binary: string, sessionPath: string): string | null {
-  let header: { type?: unknown; id?: unknown } | undefined;
-  try {
-    const fd = NodeFS.openSync(sessionPath, "r");
-    const buffer = Buffer.alloc(64 * 1024);
-    const length = NodeFS.readSync(fd, buffer, 0, buffer.length, 0);
-    NodeFS.closeSync(fd);
-    header = buffer
-      .subarray(0, length)
-      .toString("utf8")
-      .split("\n")
-      .map((line) => {
-        try {
-          return JSON.parse(line) as { type?: unknown; id?: unknown };
-        } catch {
-          return undefined;
-        }
-      })
-      .find((entry) => entry?.type === "session");
-  } catch {
-    return null;
-  }
-  if (typeof header?.id !== "string") return null;
-  const result = NodeChildProcess.spawnSync(
-    binary,
-    ["session", "lease", "--json", "--", header.id],
-    {
-      encoding: "utf8",
-      timeout: 10_000,
-    },
-  );
-  try {
-    const lease = JSON.parse(result.stdout) as { held?: unknown };
-    return Array.isArray(lease.held) && lease.held.includes(header.id) ? header.id : null;
-  } catch {
-    return null;
-  }
 }
 
 // LF framing with trailing CR stripped; readline would also split on U+2028/U+2029.

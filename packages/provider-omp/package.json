@@ -9,6 +9,10 @@
     "./dialect": {
       "types": "./src/dialect.ts",
       "import": "./src/dialect.ts"
+    },
+    "./lease": {
+      "types": "./src/lease.ts",
+      "import": "./src/lease.ts"
     }
   },
   "scripts": {

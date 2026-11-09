@@ -14,6 +14,7 @@ import {
   type OmpFrame,
   type OmpSession,
 } from "./omp-process.ts";
+import { liveSessionOwner, SESSION_IN_USE } from "@t3tools/provider-omp/lease";
 
 // -32602 = Invalid params (closest JSON-RPC code for a bad session reference)
 const badRequest = (msg: string) =>
@@ -50,7 +51,15 @@ const handlePermissionRequest = Effect.fn("OmpAcp.handlePermissionRequest")(func
   frame: OmpFrame,
 ) {
   const nativeId = typeof frame.id === "string" ? frame.id : "";
-  const method = typeof frame.method === "string" ? frame.method : "confirm";
+  const method = typeof frame.method === "string" ? frame.method : "";
+  // Only select/confirm wait for an answer that ACP's allow/reject can express. input/editor want
+  // free text, which ACP cannot request, so they are cancelled; notify, setStatus, setWidget and
+  // setTitle are fire-and-forget and must not turn into permission prompts.
+  if (method === "input" || method === "editor") {
+    session.write({ type: "extension_ui_response", id: nativeId, cancelled: true });
+    return;
+  }
+  if (method !== "select" && method !== "confirm") return;
   const title = typeof frame.title === "string" ? frame.title : method;
   const description = typeof frame.message === "string" ? frame.message : undefined;
 
@@ -162,7 +171,9 @@ const streamOmpEvents = Effect.fn("OmpAcp.streamOmpEvents")(function* (
     }
 
     if (frame.type === "extension_ui_request") {
-      yield* handlePermissionRequest(agent, session, sessionId, frame).pipe(Effect.ignore);
+      yield* Effect.forkDetach(
+        handlePermissionRequest(agent, session, sessionId, frame).pipe(Effect.ignore),
+      );
       continue;
     }
 
@@ -276,10 +287,24 @@ export const setup = Effect.fn("OmpAcp.setup")(function* (binary: string) {
     }),
   );
 
+  // A session another live omp is writing stays read-only (check O3): never attach a second writer.
+  const attach = Effect.fn("OmpAcp.attach")(function* (sessionRef: string, cwd: string) {
+    const owner = liveSessionOwner(binary, sessionRef);
+    if (owner !== null) {
+      return yield* new AcpError.AcpRequestError({
+        code: -32002,
+        errorMessage: `Session ${owner} is being written by another live omp process; it stays read-only until that process exits.`,
+        data: { reason: SESSION_IN_USE },
+      });
+    }
+    const session = yield* spawn(["--session", sessionRef], cwd);
+    yield* addSession(session);
+    return session;
+  });
+
   yield* agent.handleLoadSession(
     Effect.fn("OmpAcp.loadSession")(function* (req) {
-      const session = yield* spawn(["--session", req.sessionId], ".");
-      yield* addSession(session);
+      const session = yield* attach(req.sessionId, req.cwd);
       yield* Effect.forkDetach(replayHistory(agent, session, session.sessionFile));
       return {};
     }),
@@ -287,8 +312,7 @@ export const setup = Effect.fn("OmpAcp.setup")(function* (binary: string) {
 
   yield* agent.handleResumeSession(
     Effect.fn("OmpAcp.resumeSession")(function* (req) {
-      const session = yield* spawn(["--session", req.sessionId], ".");
-      yield* addSession(session);
+      yield* attach(req.sessionId, req.cwd);
       return {};
     }),
   );
@@ -304,6 +328,25 @@ export const setup = Effect.fn("OmpAcp.setup")(function* (binary: string) {
       yield* waitForPromptAck(s.events, promptId);
       yield* Effect.forkDetach(streamOmpEvents(agent, s, req.sessionId));
       return {};
+    }),
+  );
+
+  yield* agent.handleSetSessionConfigOption(
+    Effect.fn("OmpAcp.setSessionConfigOption")(function* (req) {
+      const sessionMap = yield* Ref.get(sessions);
+      const s = sessionMap.get(req.sessionId);
+      if (s === undefined) return yield* badRequest(`Unknown session: ${req.sessionId}`);
+      if (req.configId === "model" && typeof req.value === "string") {
+        const slash = req.value.indexOf("/");
+        const provider = slash >= 0 ? req.value.slice(0, slash) : "anthropic";
+        const modelId = slash >= 0 ? req.value.slice(slash + 1) : req.value;
+        const id = nextOmpId();
+        s.write({ id, type: "set_model", provider, modelId });
+      } else if (req.configId === "thinking" && req.value === "off") {
+        const id = nextOmpId();
+        s.write({ id, type: "set_thinking_level", level: "off" });
+      }
+      return { configOptions: [] };
     }),
   );
 

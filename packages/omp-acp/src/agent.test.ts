@@ -20,9 +20,16 @@ const BIN = NodePath.join(import.meta.dirname, "../bin/garisek-omp-acp.ts");
 const FAKE_OMP_SCRIPT = /* javascript */ `#!/usr/bin/env node
 const SESSION_FILE = "/tmp/fake-omp-acp-session.jsonl";
 const out = (r) => process.stdout.write(JSON.stringify(r) + "\\n");
+if (process.argv[2] === "session" && process.argv[3] === "lease") {
+  const ids = process.argv.slice(process.argv.indexOf("--") + 1);
+  out({ held: ids.filter((id) => id.startsWith("live-")), unknown: [] });
+  process.exit(0);
+}
+if (process.argv.includes("--session")) require("node:fs").appendFileSync(SESSION_FILE + ".spawns", process.argv.join(" ") + "\\n");
 out({ type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2], maxFrameBytes: 1048576, maxReassembledFrameBytes: 67108864 });
 let buf = "";
 let promptCount = 0;
+let resumeTurn = null;
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", (d) => {
   buf += d;
@@ -40,14 +47,22 @@ process.stdin.on("data", (d) => {
       out({ id: r.id, type: "response", command: "prompt", success: true });
       out({ type: "agent_start" });
       if (promptCount === 1) {
+        out({ type: "extension_ui_request", id: "ui-notify", method: "notify", message: "rule-router: inert here" });
         out({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: "Hello", contentIndex: 0 } });
-        out({ type: "message_update", assistantMessageEvent: { type: "thinking_delta", delta: "thinking...", contentIndex: 1 } });
-        out({ type: "tool_execution_start", toolCallId: "tc1", toolName: "read_file" });
-        out({ type: "tool_execution_end", toolCallId: "tc1", toolName: "read_file", isError: false, result: { content: [{ type: "text", text: "file contents" }] } });
-        out({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: " world", contentIndex: 0 } });
-        out({ type: "prompt_result", id: r.id, agentInvoked: true, status: "completed", sessionSettled: true });
-        out({ type: "session_settled" });
+        out({ type: "extension_ui_request", id: "ui-confirm", method: "confirm", title: "Run tests?", message: "npm test" });
+        // Like real OMP, the turn waits for the confirm dialog's answer before it continues.
+        resumeTurn = () => {
+          out({ type: "message_update", assistantMessageEvent: { type: "thinking_delta", delta: "thinking...", contentIndex: 1 } });
+          out({ type: "tool_execution_start", toolCallId: "tc1", toolName: "read_file" });
+          out({ type: "tool_execution_end", toolCallId: "tc1", toolName: "read_file", isError: false, result: { content: [{ type: "text", text: "file contents" }] } });
+          out({ type: "message_update", assistantMessageEvent: { type: "text_delta", delta: " world", contentIndex: 0 } });
+          out({ type: "prompt_result", id: r.id, agentInvoked: true, status: "completed", sessionSettled: true });
+          out({ type: "session_settled" });
+        };
       }
+    } else if (r.type === "extension_ui_response") {
+      require("node:fs").appendFileSync(SESSION_FILE + ".ui", JSON.stringify(r) + "\\n");
+      if (r.id === "ui-confirm" && resumeTurn) { const resume = resumeTurn; resumeTurn = null; resume(); }
     } else if (r.type === "abort") {
       out({ type: "prompt_result", status: "aborted", sessionSettled: true });
       out({ type: "session_settled" });
@@ -79,12 +94,19 @@ it.live(
       );
 
       const updates = yield* Ref.make<AcpCompat.SessionUpdate[]>([]);
+      const permissionTitles = yield* Ref.make<string[]>([]);
+      NodeFS.rmSync("/tmp/fake-omp-acp-session.jsonl.ui", { force: true });
 
       yield* Effect.gen(function* () {
         const acp = yield* AcpClient.AcpClient;
 
         yield* acp.handleSessionUpdate((notification) =>
           Ref.update(updates, (arr) => [...arr, notification.update]),
+        );
+        yield* acp.handleRequestPermission((request) =>
+          Ref.update(permissionTitles, (titles) => [...titles, String(request.title)]).pipe(
+            Effect.as({ outcome: { outcome: "selected" as const, optionId: "allow" } }),
+          ),
         );
 
         const initialized = yield* acp.agent.initialize({ protocolVersion: 2 });
@@ -126,6 +148,17 @@ it.live(
         assert.include(toolStatuses, "in_progress");
         assert.include(toolStatuses, "completed");
 
+        // notify is fire-and-forget; only the confirm dialog may reach the client, and its answer
+        // must flow back to OMP.
+        assert.deepEqual(yield* Ref.get(permissionTitles), ["Run tests?"]);
+        const answers = NodeFS.readFileSync("/tmp/fake-omp-acp-session.jsonl.ui", "utf8")
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line) as Record<string, unknown>);
+        assert.deepEqual(answers, [
+          { type: "extension_ui_response", id: "ui-confirm", confirmed: true },
+        ]);
+
         // Second prompt — cancel midway, expect stopReason: cancelled
         const secondFiber = yield* acp.agent
           .prompt({ sessionId, prompt: [{ type: "text" as const, text: "again" }] })
@@ -135,6 +168,22 @@ it.live(
 
         const second = yield* Fiber.join(secondFiber);
         assert.equal(second.stopReason, "cancelled");
+
+        // A session another live omp leases is refused, and no writer is spawned for it (O3).
+        const liveFile = NodePath.join(
+          NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "omp-acp-")),
+          "live.jsonl",
+        );
+        NodeFS.writeFileSync(
+          liveFile,
+          `${JSON.stringify({ type: "session", version: 3, id: "live-1" })}\n`,
+        );
+        NodeFS.rmSync("/tmp/fake-omp-acp-session.jsonl.spawns", { force: true });
+        const refused = yield* acp.agent
+          .loadSession({ sessionId: liveFile, cwd: NodeOS.tmpdir(), mcpServers: [] })
+          .pipe(Effect.flip);
+        assert.include(JSON.stringify(refused), "session_in_use");
+        assert.isFalse(NodeFS.existsSync("/tmp/fake-omp-acp-session.jsonl.spawns"));
       }).pipe(Effect.provide(AcpClient.layerChildProcess(handle)));
     }).pipe(Effect.provide(NodeServices.layer)),
 );
