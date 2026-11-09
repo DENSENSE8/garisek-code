@@ -98,9 +98,10 @@ export function chatDriver(page, { turnTimeoutMs }) {
       return /Working for \\d/.test(document.querySelector("main")?.innerText ?? document.body.innerText);
     })()`);
 
+  // Toasts last about 5 s, so they are read on the first poll after each Enter, from live regions.
   const toastTexts = () =>
     page.evaluate(
-      `[...document.querySelectorAll("li[data-sonner-toast], [data-sonner-toast], [role='status'], [role='alert']")].map((e) => (e.textContent ?? "").replace(/\\s+/g, " ").trim()).filter(Boolean)`,
+      `[...document.querySelectorAll("[data-sonner-toaster], [aria-live]")].map((e) => (e.textContent ?? "").replace(/\\s+/g, " ").trim()).filter(Boolean)`,
     );
   const draftHolds = (text) =>
     page.evaluate(
@@ -116,6 +117,7 @@ export function chatDriver(page, { turnTimeoutMs }) {
       await page.pressKey("Enter");
       const pressedAt = new Date().toISOString();
       const acceptDeadline = Date.now() + 20_000;
+      let toasts = null;
       while (Date.now() < acceptDeadline) {
         await sleep(500);
         if ((await repliesAfter(text)) !== null) {
@@ -126,8 +128,8 @@ export function chatDriver(page, { turnTimeoutMs }) {
             attempts,
           };
         }
+        toasts ??= await toastTexts();
       }
-      const toasts = await toastTexts();
       const draftIntact = await draftHolds(text);
       attempts.push({ attempt, pressedAt, acceptedAt: null, toasts, draftIntact });
       if (!draftIntact) break;
