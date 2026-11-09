@@ -19,6 +19,12 @@ const EVENT_RENAMES: Readonly<Record<string, string>> = {
 
 export const NEGOTIATE_ID = "garisek-omp-negotiate";
 
+// Pi's short-lived discovery adds --offline to skip a catalog refresh; OMP has no such flag
+// and exits on it, so it is dropped.
+export function translateArgs(argv: ReadonlyArray<string>): string[] {
+  return argv.filter((arg) => arg !== "--offline");
+}
+
 export class OmpDialect {
   readonly #renamedRequests = new Map<string, string>();
   #lastPromptStatus: string | undefined;

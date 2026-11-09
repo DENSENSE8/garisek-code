@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@effect/vitest";
 
-import { ChunkAssembler, ChunkError, NEGOTIATE_ID, OmpDialect } from "./dialect.ts";
+import { ChunkAssembler, ChunkError, NEGOTIATE_ID, OmpDialect, translateArgs } from "./dialect.ts";
 
 const chunks = (record: object, size: number, chunkId = "rpc-1") => {
   const bytes = Buffer.from(JSON.stringify(record), "utf8");
@@ -134,6 +134,16 @@ describe("OmpDialect", () => {
       expect(dialect.inbound(frame)).toEqual([frame]);
     }
   });
+});
+
+it("drops Pi's --offline, which OMP rejects, and keeps every other argument", () => {
+  expect(translateArgs(["--mode", "rpc", "--no-session", "--offline", "--model", "x"])).toEqual([
+    "--mode",
+    "rpc",
+    "--no-session",
+    "--model",
+    "x",
+  ]);
 });
 
 describe("ChunkAssembler", () => {

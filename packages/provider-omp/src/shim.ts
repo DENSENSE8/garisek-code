@@ -1,7 +1,13 @@
 // Runs `omp` where T3's Pi driver expects `pi`: argv passes through unchanged; in `--mode rpc`
 // the JSONL stream is translated by OmpDialect in both directions.
 import * as NodeChildProcess from "node:child_process";
-import { ChunkAssembler, NEGOTIATE_ID, OmpDialect, type RpcRecord } from "./dialect.ts";
+import {
+  ChunkAssembler,
+  NEGOTIATE_ID,
+  OmpDialect,
+  translateArgs,
+  type RpcRecord,
+} from "./dialect.ts";
 
 const DEFAULT_REASSEMBLY_LIMIT = 64 * 1024 * 1024;
 // OMP writes `ready` at startup; an OMP without it must not hang the host forever.
@@ -10,7 +16,7 @@ const HANDSHAKE_TIMEOUT_MS = 10_000;
 export function runShim(argv: ReadonlyArray<string>, binary: string): void {
   const modeIndex = argv.indexOf("--mode");
   const rpc = (modeIndex >= 0 && argv[modeIndex + 1] === "rpc") || argv.includes("--mode=rpc");
-  const child = NodeChildProcess.spawn(binary, argv, {
+  const child = NodeChildProcess.spawn(binary, translateArgs(argv), {
     stdio: rpc ? ["pipe", "pipe", "inherit"] : "inherit",
   });
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
@@ -20,9 +26,12 @@ export function runShim(argv: ReadonlyArray<string>, binary: string): void {
     process.stderr.write(`garisek-omp-rpc: cannot start ${binary}: ${error.message}\n`);
     process.exit(127);
   });
-  child.on("exit", (code, signal) => {
-    process.exitCode = code ?? (signal ? 128 : 1);
-    if (!rpc) process.exit(process.exitCode);
+  // `close` fires after omp's stdout is drained; leaving with it keeps the host from waiting
+  // on a shim whose omp already exited (e.g. on a rejected flag).
+  child.on("close", (code, signal) => {
+    const exitCode = code ?? (signal ? 128 : 1);
+    if (!rpc) process.exit(exitCode);
+    process.stdout.write("", () => process.exit(exitCode));
   });
   if (!rpc) return;
 

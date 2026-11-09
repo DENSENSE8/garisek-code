@@ -12,6 +12,8 @@ const BIN = NodePath.join(import.meta.dirname, "../bin/garisek-omp-rpc.ts");
 const FAKE_OMP = `#!/usr/bin/env node
 if (!process.argv.includes("rpc")) { console.log("omp/0.0.0-fake " + process.argv.slice(2).join(" ")); process.exit(0); }
 const out = (r) => process.stdout.write(JSON.stringify(r) + "\\n");
+if (process.argv.includes("--offline")) process.exit(3);
+if (process.argv.includes("--exit-now")) { out({ type: "ready", supportedProtocolVersions: [1] }); process.exit(7); }
 let v2 = false;
 out({ type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2], maxFrameBytes: 1024, maxReassembledFrameBytes: 1 << 20 });
 let buf = "";
@@ -45,7 +47,7 @@ const fakeOmp = () => {
   return file;
 };
 // Like T3, keep stdin open until the session settles; closing early would race v2 negotiation.
-const run = (args: string[], input: object[]) => {
+const run = (args: string[], input: object[], keepStdinOpen = false) => {
   const { promise, resolve } = Promise.withResolvers<{ code: number | null; stdout: string }>();
   const child = NodeChildProcess.spawn(process.execPath, [BIN, ...args], {
     env: { ...process.env, GARISEK_OMP_BINARY: fakeOmp() },
@@ -57,14 +59,14 @@ const run = (args: string[], input: object[]) => {
   });
   child.on("exit", (code) => resolve({ code, stdout }));
   for (const r of input) child.stdin.write(`${JSON.stringify(r)}\n`);
-  if (input.length === 0) child.stdin.end();
+  if (input.length === 0 && !keepStdinOpen) child.stdin.end();
   return Effect.promise(() => promise);
 };
 
 it.live("translates a whole OMP RPC session into the Pi dialect", () =>
   Effect.gen(function* () {
     const { code, stdout } = yield* run(
-      ["--mode", "rpc", "--session-dir", "/tmp/x"],
+      ["--mode", "rpc", "--session-dir", "/tmp/x", "--offline"],
       [
         { id: "1", type: "get_commands" },
         { id: "2", type: "prompt", message: "hi" },
@@ -99,5 +101,13 @@ it.live("passes non-RPC invocations such as --version straight through", () =>
     const { code, stdout } = yield* run(["--version"], []);
     expect(code).toBe(0);
     expect(stdout).toBe("omp/0.0.0-fake --version\n");
+  }),
+);
+
+it.live("exits with omp's status when omp exits while the host keeps stdin open", () =>
+  Effect.gen(function* () {
+    const { code, stdout } = yield* run(["--mode", "rpc", "--exit-now"], [], true);
+    expect(code).toBe(7);
+    expect(stdout).toContain('"ready"');
   }),
 );
