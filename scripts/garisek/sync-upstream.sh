@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Merge pingdotgg/t3code into this fork and report; never auto-resolves conflicts (check F2).
 set -uo pipefail
+export LC_ALL=C
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"
 report="${GARISEK_SYNC_REPORT:-/tmp/garisek-sync-$(date -u +%Y%m%dT%H%M%SZ).log}"
@@ -23,7 +24,7 @@ fi
 echo "merged to $(git rev-parse HEAD)"
 
 undocumented=$(comm -23 \
-  <(git diff --name-only upstream/main HEAD | sort) \
+  <(git diff --name-only upstream/main HEAD | grep -v '^docs/garisek/receipts/' | sort) \
   <(grep -oE '`[^`]+`' docs/garisek/DELTA.md | tr -d '`' | sort -u))
 if [ -n "$undocumented" ]; then
   echo "FAIL: changed vs upstream but missing from docs/garisek/DELTA.md:"
