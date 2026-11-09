@@ -501,6 +501,15 @@ export function useComposerSend(input: ComposerSendInput) {
       return;
     }
     if (!sendCtx?.providerAvailable) {
+      if (sendCtx?.providerCatalogPending) {
+        toastManager.add(
+          stackedThreadToast({
+            type: "warning",
+            title: "Providers still loading: message not sent",
+            description: "This server has not reported its providers yet. Try again in a moment.",
+          }),
+        );
+      }
       notifyDirectAnnotationAttached();
       return;
     }
