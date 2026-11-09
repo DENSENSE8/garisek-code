@@ -81,6 +81,15 @@ const DEFAULT_PI_SETTINGS = Schema.decodeSync(PiSettings)({});
 // Inherit Pi's configured defaultProvider/defaultModel without calling set_model.
 const PI_INHERIT_MODEL_SLUG = "default";
 
+// A host wrapper (Garisek's OMP shim) refuses switch_session with this code while another
+// process owns the session file; a fresh session would split the conversation from it.
+function sessionInUseMessage(error: unknown): string | undefined {
+  if (!Predicate.isTagged(error, "PiRpcError")) return undefined;
+  const raw = recordField(error, "cause");
+  if (recordString(raw, "code") !== "session_in_use") return undefined;
+  return recordString(raw, "message") ?? "This session is open in another process.";
+}
+
 const STREAM_FLUSH_MS = 50;
 const PI_REQUEST_TIMEOUT_MS = 15_000;
 const PI_SESSION_TIMEOUT_MS = 60_000;
@@ -2692,15 +2701,22 @@ export const makePiAdapterV2 = Effect.fn("makePiAdapterV2")(function* (
             runtimePolicy: threadInput.runtimePolicy ?? input.runtimePolicy,
             existingProviderThread: threadInput.providerThread,
           }).pipe(
-            Effect.mapError(
-              (cause) =>
-                new ProviderAdapter.ProviderAdapterResumeThreadError({
-                  driver: PI_PROVIDER,
-                  providerSessionId: input.providerSessionId,
-                  providerThreadId: threadInput.providerThread.id,
-                  cause,
-                }),
-            ),
+            Effect.mapError((cause) => {
+              const inUse = sessionInUseMessage(cause);
+              return inUse !== undefined
+                ? new ProviderAdapter.ProviderAdapterThreadInUseError({
+                    driver: PI_PROVIDER,
+                    providerThreadId: threadInput.providerThread.id,
+                    detail: inUse,
+                    cause,
+                  })
+                : new ProviderAdapter.ProviderAdapterResumeThreadError({
+                    driver: PI_PROVIDER,
+                    providerSessionId: input.providerSessionId,
+                    providerThreadId: threadInput.providerThread.id,
+                    cause,
+                  });
+            }),
           ),
         compactThread: (turnInput) =>
           runtime.startTurn({

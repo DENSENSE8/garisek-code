@@ -145,8 +145,9 @@ it.live("refuses to attach to a session another live omp is writing, and allows 
     expect(frames.find((f) => f.id === "live")).toMatchObject({
       success: false,
       command: "switch_session",
+      error: { code: "session_in_use" },
     });
-    expect(String(frames.find((f) => f.id === "live")?.error)).toContain("live-1");
+    expect(JSON.stringify(frames.find((f) => f.id === "live")?.error)).toContain("live-1");
     expect(frames.find((f) => f.id === "closed")).toMatchObject({ success: true });
   }),
 );

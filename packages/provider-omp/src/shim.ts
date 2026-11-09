@@ -114,7 +114,10 @@ export function runShim(argv: ReadonlyArray<string>, binary: string): void {
           type: "response",
           command: "switch_session",
           success: false,
-          error: `Session ${owner} is being written by another live omp process; it stays read-only until that process exits.`,
+          error: {
+            code: "session_in_use",
+            message: `Session ${owner} is being written by another live omp process; it stays read-only until that process exits.`,
+          },
         });
         return;
       }

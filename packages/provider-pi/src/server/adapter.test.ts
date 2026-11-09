@@ -912,6 +912,39 @@ describe("PiAdapterV2", () => {
     }).pipe(Effect.scoped, Effect.provide(layerTest)),
   );
 
+  it.effect.each([
+    {
+      error: { code: "session_in_use", message: "Session s1 is open elsewhere." },
+      tag: "ProviderAdapterThreadInUseError",
+    },
+    { error: "Session replacement failed", tag: "ProviderAdapterResumeThreadError" },
+  ] as const)("reports a refused session switch as $tag", ({ error, tag }) =>
+    Effect.gen(function* () {
+      const fake = yield* makeFakePi;
+      const { runtime } = yield* openRuntime(fake);
+      const providerThread = yield* runtime.ensureThread({
+        threadId: THREAD_ID,
+        modelSelection: modelSelection("default"),
+        runtimePolicy,
+      });
+      fake.deferNextLifecycle("switch_session");
+      const switching = yield* runtime
+        .resumeThread({ providerThread })
+        .pipe(Effect.flip, Effect.forkScoped);
+      const request = yield* fake.takeRequest("switch_session");
+      yield* fake.emit({
+        type: "response",
+        id: request["id"],
+        command: "switch_session",
+        success: false,
+        error,
+      });
+      const failure = yield* Fiber.join(switching);
+      assert.equal(failure._tag, tag);
+      if (typeof error !== "string") assert.equal(failure.message, error.message);
+    }).pipe(Effect.scoped, Effect.provide(layerTest)),
+  );
+
   it.effect.each(["success", "cancelled", "error"] as const)(
     "handles native status publications during session switch hooks, outcome=%s",
     (outcome) =>
