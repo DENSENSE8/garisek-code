@@ -365,4 +365,20 @@ and `cli/` would let one value own all surfaces.
 
 ## Baseline
 
-filled by parent
+Upstream b07fdeb on avion. `scripts/garisek/test-all.sh`; raw results are in `/tmp/garisek-baseline/tests.jsonl` (not committed). Typecheck: 41/41 packages pass.
+
+| Package            | Exit | Tests                                     | Failing                                                                                                                           |
+| ------------------ | ---- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `@t3tools/desktop` | 1    | 1003 passed (1003)                        | `src/app/DesktopLinuxUrlHandler.test.ts`, `src/backend/DesktopBackendManager.test.ts`                                             |
+| `t3`               | 1    | 1 failed · 6946 passed · 5 skipped (6952) | `src/storageCleanup.test.ts`                                                                                                      |
+| `@t3tools/web`     | 1    | 3 failed · 5652 passed (5655)             | `src/components/files/AttachmentFilePreview.browser.test.tsx`, `src/components/settings/CloudVoiceConfiguration.browser.test.tsx` |
+| `@t3tools/scripts` | 1    | 5 failed · 256 passed · 1 skipped (262)   | `install.test.ts`                                                                                                                 |
+
+The other 32 packages pass (10841 tests). Known causes of the failures:
+
+- desktop: two files fail to load because of a broken electron install race; all 1003 of the tests that ran pass.
+- t3: `storageCleanup` fails on one checksum comparison.
+- web: three Chromium browser tests fail.
+- scripts: `install.test.ts` installer checksum, 5 tests.
+
+None of these packages was touched by a Garisek change at baseline. A post-change failure is a regression only if it is not on this list.
