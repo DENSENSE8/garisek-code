@@ -22,7 +22,7 @@ Rules: no `@t3tools/*` scope is renamed. New code goes in new files. An upstream
 | `scripts/garisek/acceptance-gate.mjs`          | Parent acceptance gate (GATE1)                                                                                                       |
 | `scripts/garisek/omp-rpc-probe.mjs`            | OMP RPC conformance probe (O1)                                                                                                       |
 | `scripts/garisek/inventory.mjs`                | Independent first-party inventory (INV1)                                                                                             |
-| `scripts/garisek/cdp.mjs`                      | Minimal CDP client for the Electron window (harness and bench)                                                                       |
+| `scripts/garisek/cdp.mjs`                      | Minimal CDP client for the Electron window, plus `chatDriver` (new thread, ref, model, send-and-settle) shared by harness and W5     |
 | `scripts/garisek/e2e-harness.mjs`              | Governed-workflow harness (W1–W4): project/ref, model, SMART set/amend, edit→read-back→revert, project verifier, independent verdict |
 | `scripts/garisek/paint-bench.mjs`              | Cached-paint bench (PAINT1): shell warm start, thread list, second open, message echo with ack/model clocks                          |
 | `scripts/garisek/sync-upstream.sh`             | This merge procedure                                                                                                                 |
