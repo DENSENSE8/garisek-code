@@ -49,6 +49,7 @@ import {
 import { authScopesFlag } from "./authScopes.ts";
 import { baseDirFlag, DurationFromString } from "./config.ts";
 import { resolveHostCliCommand } from "./invocation.ts";
+import { GARISEK_PRODUCT_NAME } from "@t3tools/shared/garisekBrand";
 
 const WELL_KNOWN_ENVIRONMENT_PATH = "/.well-known/t3/environment";
 const PAIR_PROBE_TIMEOUT = Duration.millis(2_500);
@@ -492,7 +493,7 @@ export const pairCommand = Command.make("pair", {
   tailscaleServePort: tailscaleServePortFlag,
 }).pipe(
   Command.withDescription(
-    "Mint a pairing token for a running T3 Code server and print it as a QR code.",
+    `Mint a pairing token for a running ${GARISEK_PRODUCT_NAME} server and print it as a QR code.`,
   ),
   Command.withHandler((flags) =>
     Effect.gen(function* () {

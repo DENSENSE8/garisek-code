@@ -36,12 +36,18 @@
         "prepare-server-compile-cache.cjs",
         "smoke-desktop-app.ts",
         "verify-windows-desktop-artifact.ts",
+        // Garisek fork tooling, run directly by operators and sync-upstream.sh.
+        "garisek/*.mjs",
       ],
       "ignoreDependencies": ["agent-device", "esbuild"],
       // The `t3` npm package's files: copied into the package, never imported.
       // knip-schemas.test.ts writes a throwaway project to .knip-test-*, which a
       // knip run beside it in check:changed must not report.
       "ignore": ["npm-launcher/**", ".knip-test-*/**"],
+    },
+    "packages/provider-omp": {
+      // The Pi driver spawns this executable by path (Garisek fork).
+      "entry": ["bin/garisek-omp-rpc.ts"],
     },
     "apps/server": {
       // Vite+ pack entries and the launcher used by installed background services.

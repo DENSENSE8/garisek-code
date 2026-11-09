@@ -17,6 +17,7 @@ import * as ServerConfig from "../config.ts";
 import * as ProcessRunner from "../processRunner.ts";
 import { projectLocationFlags, resolveCliAuthConfig } from "./config.ts";
 import { resolveEntryPath } from "./invocation.ts";
+import { GARISEK_PRODUCT_NAME } from "@t3tools/shared/garisekBrand";
 
 export const layer = (config: ServerConfig.ServerConfig["Service"]) =>
   BootService.layer({
@@ -216,7 +217,7 @@ const serviceReconcileFlags = {
 
 const serviceInstallCommand = Command.make("install", serviceReconcileFlags).pipe(
   Command.withDescription(
-    "Install T3 Code as a background service for this user. `t3 up` also chooses how your other devices reach it.",
+    `Install ${GARISEK_PRODUCT_NAME} as a background service for this user. \`t3 up\` also chooses how your other devices reach it.`,
   ),
   Command.withHandler((flags) =>
     runServiceCommand(
@@ -289,7 +290,7 @@ const serviceRestartCommand = Command.make("restart", projectLocationFlags).pipe
 );
 
 const serviceUninstallCommand = Command.make("uninstall", projectLocationFlags).pipe(
-  Command.withDescription("Stop and remove the T3 Code background service."),
+  Command.withDescription(`Stop and remove the ${GARISEK_PRODUCT_NAME} background service.`),
   Command.withHandler((flags) =>
     runServiceCommand(
       flags,
@@ -321,7 +322,9 @@ const serviceUninstallCommand = Command.make("uninstall", projectLocationFlags).
 );
 
 const serviceStatusCommand = Command.make("status", projectLocationFlags).pipe(
-  Command.withDescription("Show whether the T3 Code background service is installed."),
+  Command.withDescription(
+    `Show whether the ${GARISEK_PRODUCT_NAME} background service is installed.`,
+  ),
   Command.withHandler((flags) =>
     runServiceCommand(
       flags,
@@ -361,7 +364,7 @@ const serviceProtectCommand = Command.make("protect", {
   ),
 }).pipe(
   Command.withDescription(
-    "Protect the T3 Code server from agents under memory pressure (Linux with systemd). Asks for sudo.",
+    `Protect the ${GARISEK_PRODUCT_NAME} server from agents under memory pressure (Linux with systemd). Asks for sudo.`,
   ),
   Command.withHandler((flags) =>
     Effect.gen(function* () {
@@ -451,7 +454,7 @@ const serviceProtectCommand = Command.make("protect", {
 );
 
 export const serviceCommand = Command.make("service").pipe(
-  Command.withDescription("Manage the T3 Code background service."),
+  Command.withDescription(`Manage the ${GARISEK_PRODUCT_NAME} background service.`),
   Command.withSubcommands([
     serviceInstallCommand,
     serviceRestartCommand,

@@ -30,6 +30,7 @@ import {
 } from "./connect.ts";
 import { resolveHostCliCommand } from "./invocation.ts";
 import * as CliService from "./service.ts";
+import { GARISEK_PRODUCT_NAME } from "@t3tools/shared/garisekBrand";
 
 type Route = "connect" | "lan";
 type Routes = Readonly<Record<Route, boolean>>;
@@ -459,9 +460,11 @@ export const upCommand = Command.make("up", {
   ),
   headless: headlessFlag,
 }).pipe(
-  Command.withShortDescription("Set up remote access and the T3 Code background service."),
+  Command.withShortDescription(
+    `Set up remote access and the ${GARISEK_PRODUCT_NAME} background service.`,
+  ),
   Command.withDescription(
-    "Set up remote access and the T3 Code background service. Access flags skip the question, and routes not named keep their settings. Without a terminal, a needed restart runs without asking and stops running agent turns.",
+    `Set up remote access and the ${GARISEK_PRODUCT_NAME} background service. Access flags skip the question, and routes not named keep their settings. Without a terminal, a needed restart runs without asking and stops running agent turns.`,
   ),
   Command.withExamples([
     { command: "t3 up", description: "Choose remote access." },

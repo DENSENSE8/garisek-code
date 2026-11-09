@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        // The shim is a standalone stdio process spawned by the Pi driver, not Effect server code.
+        "diagnosticSeverity": {
+          "nodeBuiltinImport": "off",
+          "globalTimers": "off",
+          "extendsNativeError": "off"
+        }
+      }
+    ]
+  },
+  "include": ["src"]
+}

@@ -8,6 +8,7 @@ import * as BootService from "../cloud/bootService.ts";
 import * as DatabaseMaintenance from "../persistence/DatabaseMaintenance.ts";
 import { projectLocationFlags, resolveCliAuthConfig } from "./config.ts";
 import * as CliService from "./service.ts";
+import { GARISEK_PRODUCT_NAME } from "@t3tools/shared/garisekBrand";
 
 const formatBytes = (bytes: number) =>
   bytes >= 1024 ** 3
@@ -133,7 +134,7 @@ export const doctorCommand = Command.make("doctor", {
   ),
 }).pipe(
   Command.withDescription(
-    "Inspect this T3 Code data directory and repair it. Pauses and restarts the background service as needed.",
+    `Inspect this ${GARISEK_PRODUCT_NAME} data directory and repair it. Pauses and restarts the background service as needed.`,
   ),
   Command.withHandler((flags) =>
     Effect.gen(function* () {
