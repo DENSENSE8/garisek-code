@@ -98,6 +98,43 @@ export function chatDriver(page, { turnTimeoutMs }) {
       return /Working for \\d/.test(document.querySelector("main")?.innerText ?? document.body.innerText);
     })()`);
 
+  const toastTexts = () =>
+    page.evaluate(
+      `[...document.querySelectorAll("li[data-sonner-toast], [data-sonner-toast], [role='status'], [role='alert']")].map((e) => (e.textContent ?? "").replace(/\\s+/g, " ").trim()).filter(Boolean)`,
+    );
+  const draftHolds = (text) =>
+    page.evaluate(
+      `(document.querySelector('[data-testid="composer-editor"]')?.innerText ?? "").replace(/\\s+/g, " ").trim().startsWith(${js(text.replace(/\s+/g, " ").trim().slice(0, 60))})`,
+    );
+
+  // A send is accepted once its user row is in the timeline. Enter is pressed again only while the
+  // draft still holds the prompt, so a held send is never duplicated; each attempt is recorded.
+  async function submitUntilAccepted(text) {
+    const attempts = [];
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      await page.evaluate(`document.querySelector('[data-testid="composer-editor"]')?.focus()`);
+      await page.pressKey("Enter");
+      const pressedAt = new Date().toISOString();
+      const acceptDeadline = Date.now() + 20_000;
+      while (Date.now() < acceptDeadline) {
+        await sleep(500);
+        if ((await repliesAfter(text)) !== null) {
+          attempts.push({ attempt, pressedAt, acceptedAt: new Date().toISOString() });
+          return {
+            sentAt: attempts[0].pressedAt,
+            acceptedAt: attempts.at(-1).acceptedAt,
+            attempts,
+          };
+        }
+      }
+      const toasts = await toastTexts();
+      const draftIntact = await draftHolds(text);
+      attempts.push({ attempt, pressedAt, acceptedAt: null, toasts, draftIntact });
+      if (!draftIntact) break;
+    }
+    throw Object.assign(new Error(`send not accepted: ${js(attempts)}`), { attempts });
+  }
+
   async function sendTurn(text, expect) {
     const focused = await page.evaluate(`(() => {
       const editor = document.querySelector('[data-testid="composer-editor"]');
@@ -108,8 +145,7 @@ export function chatDriver(page, { turnTimeoutMs }) {
     if (!focused) throw new Error("composer editor not found");
     await page.send("Input.insertText", { text });
     await sleep(300);
-    await page.pressKey("Enter");
-    const sentAt = new Date().toISOString();
+    const { sentAt, acceptedAt, attempts } = await submitUntilAccepted(text);
     const deadline = Date.now() + turnTimeoutMs;
     let lastText = null;
     let stableSince = 0;
@@ -128,7 +164,7 @@ export function chatDriver(page, { turnTimeoutMs }) {
       } else if (Date.now() - stableSince >= 6000) {
         const reply = replies.at(-1);
         if (expect && !expect(reply)) throw new Error(`unexpected reply: ${reply.slice(0, 400)}`);
-        return { sentAt, settledAt: new Date().toISOString(), reply };
+        return { sentAt, acceptedAt, attempts, settledAt: new Date().toISOString(), reply };
       }
     }
     throw new Error(`turn did not settle within ${turnTimeoutMs / 1000}s`);
