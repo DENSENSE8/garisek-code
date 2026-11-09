@@ -197,5 +197,5 @@ export function chatDriver(page, { turnTimeoutMs }) {
     return label;
   }
 
-  return { clickByText, openNewThread, selectModel, selectRef, sendTurn };
+  return { clickByText, openNewThread, repliesAfter, selectModel, selectRef, sendTurn };
 }

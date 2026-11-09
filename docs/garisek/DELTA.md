@@ -25,6 +25,8 @@ Rules: no `@t3tools/*` scope is renamed. New code goes in new files. An upstream
 | `scripts/garisek/cdp.mjs`                      | Minimal CDP client for the Electron window, plus `chatDriver` (new thread, ref, model, send-and-settle) shared by harness and W5     |
 | `scripts/garisek/e2e-harness.mjs`              | Governed-workflow harness (W1–W4): project/ref, model, SMART set/amend, edit→read-back→revert, project verifier, independent verdict |
 | `scripts/garisek/paint-bench.mjs`              | Cached-paint bench (PAINT1): shell warm start, thread list, second open, message echo with ack/model clocks                          |
+| `scripts/garisek/handoff.mjs`                  | Cross-device handoff (W5): client A turn, server restart, client B continues the same thread; one session file holds both turns      |
+| `scripts/garisek/receipts.mjs`                 | Tamper-evident receipt ledger (SG2): hash-chained seal, supersede-not-rewrite, verify against an external head checkpoint            |
 | `scripts/garisek/sync-upstream.sh`             | This merge procedure                                                                                                                 |
 | `docs/garisek/SCOUT.md`                        | Scouting record                                                                                                                      |
 | `docs/garisek/DELTA.md`                        | This file                                                                                                                            |
