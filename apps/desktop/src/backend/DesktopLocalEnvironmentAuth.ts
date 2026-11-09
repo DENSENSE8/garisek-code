@@ -16,6 +16,7 @@ import * as Semaphore from "effect/Semaphore";
 import * as HttpClient from "effect/http/HttpClient";
 
 import * as DesktopBackendPool from "./DesktopBackendPool.ts";
+import { GARISEK_PRODUCT_NAME } from "@t3tools/shared/garisekBrand";
 
 const BOOTSTRAP_TRANSIENT_RETRY_TIMEOUT = Duration.seconds(15);
 const BOOTSTRAP_TRANSIENT_RETRY_INTERVAL = Duration.millis(500);
@@ -105,7 +106,7 @@ export const make = Effect.gen(function* () {
           httpBaseUrl: config.httpBaseUrl.href,
           credential,
           clientMetadata: {
-            label: "T3 Code Desktop",
+            label: `${GARISEK_PRODUCT_NAME} Desktop`,
             deviceType: "desktop",
           },
         }).pipe(

@@ -5,6 +5,7 @@ import {
   NIRI_CAPTURE_INTERFACE as INTERFACE,
   NIRI_CAPTURE_PATH as PATH,
 } from "./linuxCaptureSession.ts";
+import { GARISEK_PRODUCT_NAME } from "@t3tools/shared/garisekBrand";
 
 export async function startNiriCaptureShortcut(
   appId: string,
@@ -54,7 +55,9 @@ export async function startNiriCaptureShortcut(
       }),
     ]);
     if (result !== RequestNameReply.PRIMARY_OWNER)
-      throw new Error("Another T3 Code instance already owns the capture shortcut.");
+      throw new Error(
+        `Another ${GARISEK_PRODUCT_NAME} instance already owns the capture shortcut.`,
+      );
     return close;
   } catch (error) {
     close();

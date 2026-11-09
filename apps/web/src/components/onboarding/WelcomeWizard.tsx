@@ -537,7 +537,7 @@ function ConnectAccountOption({
             </p>
             <InstallT3Commands command="t3 connect" className="mt-3" />
             <p className="mt-3 text-xs text-muted-foreground">
-              Keep T3 Code running. Select the computers you want to set up above.
+              Keep {APP_BASE_NAME} running. Select the computers you want to set up above.
             </p>
           </div>
         </CollapsiblePanel>
@@ -645,7 +645,7 @@ function PairingForm({
             <p className="pt-3 text-sm text-muted-foreground">On the computer with your code:</p>
             <InstallT3Commands command="t3 pair" className="mt-2" />
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Start T3 Code or run <code className="font-mono">t3 serve</code> there before{" "}
+              Start {APP_BASE_NAME} or run <code className="font-mono">t3 serve</code> there before{" "}
               <code className="font-mono">t3 pair</code>. On a tailnet, run{" "}
               <code className="font-mono">t3 pair --tailscale</code> instead.
             </p>
