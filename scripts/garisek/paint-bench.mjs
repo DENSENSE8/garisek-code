@@ -133,12 +133,11 @@ if (surfaces.includes("thread-list")) {
   await sleep(500);
   await page.evaluate(`${toggle}.click()`);
   await sleep(500);
+  // Settled threads render as slim rows, which exist only while the shelf is expanded.
+  const slimRows = `document.querySelectorAll('[data-testid="sidebar-row-slim"]').length`;
   await collect("thread-list", async () => {
-    const before = await page.evaluate(`${sidebarCards}.length`);
-    const sample = await timeClick(
-      `() => ${toggle}.click()`,
-      `() => ${sidebarCards}.length > ${before}`,
-    );
+    if (await page.evaluate(slimRows)) throw new Error("shelf did not collapse before the trial");
+    const sample = await timeClick(`() => ${toggle}.click()`, `() => ${slimRows} > 0`);
     await sleep(300);
     await page.evaluate(`${toggle}.click()`);
     await sleep(500);
@@ -190,7 +189,7 @@ if (surfaces.includes("echo")) {
           state.echo = -1;
           nextFrame().then(() => { state.echo = performance.now(); state.visible = document.visibilityState === "visible"; });
         }
-        if (state.ack === undefined && /Working/.test(document.querySelector('[data-testid="sidebar-row-card"]')?.innerText ?? "")) state.ack = performance.now();
+        if (state.ack === undefined && /Working for \d/.test(document.querySelector("main")?.innerText ?? "")) state.ack = performance.now();
         if (user && state.model === undefined) {
           const rows = [...document.querySelectorAll("[data-timeline-row-id]")];
           const after = rows.slice(rows.indexOf(user) + 1).find((row) => row.getAttribute("data-message-role") === "assistant" && row.innerText.trim().length > 0);
