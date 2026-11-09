@@ -6,25 +6,28 @@ Rules: no `@t3tools/*` scope is renamed. New code goes in new files. An upstream
 
 ## Fork-owned files (no upstream counterpart)
 
-| File                                           | Why                                                                                             |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `packages/shared/src/garisekBrand.ts`          | One product identity: name `Garisek`, app id `com.garisek.code`, default data home `~/.garisek` |
-| `packages/provider-omp/package.json`           | OMP provider package (check O1)                                                                 |
-| `packages/provider-omp/tsconfig.json`          | Turns off the Effect diagnostics that don't apply to a standalone stdio process                 |
-| `packages/provider-omp/bin/garisek-omp-rpc.ts` | Executable the Pi driver spawns in place of `pi`                                                |
-| `packages/provider-omp/src/dialect.ts`         | Translates the OMP RPC dialect into Pi's (settle, commands, queue, compaction, v2 chunking)     |
-| `packages/provider-omp/src/shim.ts`            | Spawns `omp` and pipes the translated JSONL in both directions                                  |
-| `packages/provider-omp/src/dialect.test.ts`    | Dialect behavior tests                                                                          |
-| `packages/provider-omp/src/shim.test.ts`       | End-to-end subprocess test against a stand-in OMP                                               |
-| `scripts/garisek/test-all.sh`                  | Per-package test runner that keeps going past a failure, for baselines                          |
-| `scripts/garisek/identity.mjs`                 | Input identity used to bind receipts (ID1)                                                      |
-| `scripts/garisek/acceptance-gate.mjs`          | Parent acceptance gate (GATE1)                                                                  |
-| `scripts/garisek/omp-rpc-probe.mjs`            | OMP RPC conformance probe (O1)                                                                  |
-| `scripts/garisek/inventory.mjs`                | Independent first-party inventory (INV1)                                                        |
-| `scripts/garisek/sync-upstream.sh`             | This merge procedure                                                                            |
-| `docs/garisek/SCOUT.md`                        | Scouting record                                                                                 |
-| `docs/garisek/DELTA.md`                        | This file                                                                                       |
-| `docs/garisek/receipts/`                       | Probe and smoke receipts                                                                        |
+| File                                           | Why                                                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/shared/src/garisekBrand.ts`          | One product identity: name `Garisek`, app id `com.garisek.code`, default data home `~/.garisek`                                      |
+| `packages/provider-omp/package.json`           | OMP provider package (check O1)                                                                                                      |
+| `packages/provider-omp/tsconfig.json`          | Turns off the Effect diagnostics that don't apply to a standalone stdio process                                                      |
+| `packages/provider-omp/bin/garisek-omp-rpc.ts` | Executable the Pi driver spawns in place of `pi`                                                                                     |
+| `packages/provider-omp/src/dialect.ts`         | Translates the OMP RPC dialect into Pi's (settle, commands, queue, compaction, v2 chunking)                                          |
+| `packages/provider-omp/src/shim.ts`            | Spawns `omp` and pipes the translated JSONL in both directions                                                                       |
+| `packages/provider-omp/src/dialect.test.ts`    | Dialect behavior tests                                                                                                               |
+| `packages/provider-omp/src/shim.test.ts`       | End-to-end subprocess test against a stand-in OMP                                                                                    |
+| `scripts/garisek/test-all.sh`                  | Per-package test runner that keeps going past a failure, for baselines                                                               |
+| `scripts/garisek/identity.mjs`                 | Input identity used to bind receipts (ID1)                                                                                           |
+| `scripts/garisek/acceptance-gate.mjs`          | Parent acceptance gate (GATE1)                                                                                                       |
+| `scripts/garisek/omp-rpc-probe.mjs`            | OMP RPC conformance probe (O1)                                                                                                       |
+| `scripts/garisek/inventory.mjs`                | Independent first-party inventory (INV1)                                                                                             |
+| `scripts/garisek/cdp.mjs`                      | Minimal CDP client for the Electron window (harness and bench)                                                                       |
+| `scripts/garisek/e2e-harness.mjs`              | Governed-workflow harness (W1–W4): project/ref, model, SMART set/amend, edit→read-back→revert, project verifier, independent verdict |
+| `scripts/garisek/paint-bench.mjs`              | Cached-paint bench (PAINT1): shell warm start, thread list, second open, message echo with ack/model clocks                          |
+| `scripts/garisek/sync-upstream.sh`             | This merge procedure                                                                                                                 |
+| `docs/garisek/SCOUT.md`                        | Scouting record                                                                                                                      |
+| `docs/garisek/DELTA.md`                        | This file                                                                                                                            |
+| `docs/garisek/receipts/`                       | Probe and smoke receipts                                                                                                             |
 
 ## Upstream files changed
 
