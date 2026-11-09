@@ -10,6 +10,11 @@ const BIN = NodePath.join(import.meta.dirname, "../bin/garisek-omp-rpc.ts");
 
 // A stand-in omp that speaks the OMP dialect: v2 negotiation, rpc_chunk framing, session_settled.
 const FAKE_OMP = `#!/usr/bin/env node
+if (process.argv[2] === "session" && process.argv[3] === "lease") {
+  const ids = process.argv.slice(process.argv.indexOf("--") + 1);
+  console.log(JSON.stringify({ held: ids.filter((id) => id.startsWith("live-")), unknown: [] }));
+  process.exit(0);
+}
 if (!process.argv.includes("rpc")) { console.log("omp/0.0.0-fake " + process.argv.slice(2).join(" ")); process.exit(0); }
 const out = (r) => process.stdout.write(JSON.stringify(r) + "\\n");
 if (process.argv.includes("--offline")) process.exit(3);
@@ -24,6 +29,7 @@ process.stdin.on("data", (d) => {
   while ((i = buf.indexOf("\\n")) >= 0) {
     const r = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
     if (r.type === "negotiate_protocol") { v2 = true; out({ id: r.id, type: "response", command: r.type, success: true }); }
+    else if (r.type === "switch_session") out({ id: r.id, type: "response", command: r.type, success: true, data: { cancelled: false } });
     else if (r.type === "get_available_commands") out({ id: r.id, type: "response", command: r.type, success: true, data: { commands: [{ name: "plan", source: "builtin" }] } });
     else if (r.type === "prompt") {
       out({ id: r.id, type: "response", command: "prompt", success: true });
@@ -109,5 +115,38 @@ it.live("exits with omp's status when omp exits while the host keeps stdin open"
     const { code, stdout } = yield* run(["--mode", "rpc", "--exit-now"], [], true);
     expect(code).toBe(7);
     expect(stdout).toContain('"ready"');
+  }),
+);
+
+const sessionFile = (id: string) => {
+  const dir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "omp-session-"));
+  const file = NodePath.join(dir, `${id}.jsonl`);
+  NodeFS.writeFileSync(
+    file,
+    `${JSON.stringify({ type: "title", v: 1 })}\n${JSON.stringify({ type: "session", version: 3, id })}\n`,
+  );
+  return file;
+};
+
+it.live("refuses to attach to a session another live omp is writing, and allows a closed one", () =>
+  Effect.gen(function* () {
+    const { stdout } = yield* run(
+      ["--mode", "rpc"],
+      [
+        { id: "live", type: "switch_session", sessionPath: sessionFile("live-1") },
+        { id: "closed", type: "switch_session", sessionPath: sessionFile("closed-1") },
+        { id: "p", type: "prompt", message: "hi" },
+      ],
+    );
+    const frames = stdout
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l) as Record<string, unknown>);
+    expect(frames.find((f) => f.id === "live")).toMatchObject({
+      success: false,
+      command: "switch_session",
+    });
+    expect(String(frames.find((f) => f.id === "live")?.error)).toContain("live-1");
+    expect(frames.find((f) => f.id === "closed")).toMatchObject({ success: true });
   }),
 );
