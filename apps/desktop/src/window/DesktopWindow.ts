@@ -19,6 +19,7 @@ import * as DesktopState from "../app/DesktopState.ts";
 import * as ElectronMenu from "../electron/ElectronMenu.ts";
 import { getDesktopUrl } from "../electron/ElectronProtocol.ts";
 import * as ElectronShell from "../electron/ElectronShell.ts";
+import * as GarisekShell from "../garisek/shell.ts";
 import * as ElectronTheme from "../electron/ElectronTheme.ts";
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import {
@@ -523,6 +524,10 @@ export const make = Effect.gen(function* () {
       return Option.none();
     }
     window.webContents.on("will-attach-webview", (event, webPreferences, params) => {
+      if (GarisekShell.isGarisekPartition(params.partition)) {
+        if (!GarisekShell.prepareGarisekWebview(webPreferences, params)) event.preventDefault();
+        return;
+      }
       if (
         typeof params.partition !== "string" ||
         !previewManager.isBrowserPartition(params.partition)

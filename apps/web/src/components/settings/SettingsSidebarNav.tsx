@@ -18,6 +18,7 @@ import {
   GitBranchIcon,
   GlobeIcon,
   InfoIcon,
+  LayoutDashboardIcon,
   MessageSquareTextIcon,
   MessagesSquareIcon,
   PanelsTopLeftIcon,
@@ -108,6 +109,7 @@ const SETTINGS_SECTION_ICONS: Readonly<
   "/settings/maintenance": WrenchIcon,
   "/settings/labs": FlaskConicalIcon,
   "/settings/about": InfoIcon,
+  "/settings/garisek": LayoutDashboardIcon,
   "/settings/archived": ArchiveIcon,
 };
 
