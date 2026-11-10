@@ -39,6 +39,7 @@ export type SettingsPath =
   | "/settings/maintenance"
   | "/settings/labs"
   | "/settings/about"
+  | "/settings/garisek"
   | "/settings/archived";
 
 export type SettingsSearchScope =
@@ -113,6 +114,7 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/labs": "Labs",
   "/settings/about": "About",
   "/settings/voice": "Voice",
+  "/settings/garisek": "Garisek",
   "/settings/archived": "Archive",
 };
 
@@ -153,6 +155,7 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
       "/settings/connections",
       "/settings/access",
       ...(isSecretsFeatureEnabled ? (["/settings/secrets"] as const) : []),
+      ...(isElectron ? (["/settings/garisek"] as const) : []),
     ],
   },
   {
@@ -1307,6 +1310,13 @@ export const SETTINGS_SEARCH_ITEMS = [
     secretsFeatureOnly: true,
   },
   {
+    id: "garisek-origin",
+    title: "Garisek origin",
+    to: "/settings/garisek",
+    searchTerms: ["garisek os server url address avion area webview"],
+    desktopOnly: true,
+  },
+  {
     id: "archive",
     title: "Archived threads",
     to: "/settings/archived",
@@ -1341,6 +1351,7 @@ const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScop
   "/settings/maintenance": null,
   "/settings/labs": null,
   "/settings/about": null,
+  "/settings/garisek": null,
   "/settings/archived": "project-defaults",
 };
 

@@ -12,6 +12,7 @@ import * as ElectronDialog from "../electron/ElectronDialog.ts";
 import * as ElectronProtocol from "../electron/ElectronProtocol.ts";
 import * as ElectronSafeStorage from "../electron/ElectronSafeStorage.ts";
 import { installDesktopIpcHandlers } from "../ipc/DesktopIpcHandlers.ts";
+import { installGarisekShell } from "../garisek/shell.ts";
 import * as DesktopAppActivation from "./DesktopAppActivation.ts";
 import * as DesktopAppIdentity from "./DesktopAppIdentity.ts";
 import * as DesktopClerk from "./DesktopClerk.ts";
@@ -187,6 +188,15 @@ const bootstrap = Effect.gen(function* () {
     clerkFrontendApiHostname: DesktopClerk.desktopClerkFrontendApiHostname,
   });
   yield* installDesktopIpcHandlers();
+  const runPromise = Effect.runPromiseWith(yield* Effect.context<never>());
+  installGarisekShell({
+    platform: environment.platform,
+    preloadPath: environment.path.join(
+      environment.path.dirname(environment.preloadPath),
+      "garisek-preload.cjs",
+    ),
+    revealMain: () => runPromise(desktopWindow.revealOrCreateMain),
+  });
   yield* logBootstrapInfo("bootstrap ipc handlers registered");
   // Before any window: the preload merges these items before the app reads storage.
   yield* (yield* DesktopLegacyLocalStorage.DesktopLegacyLocalStorage).load(

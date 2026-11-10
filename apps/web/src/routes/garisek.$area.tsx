@@ -13,7 +13,7 @@ function GarisekRoute() {
   );
 }
 
-export const Route = createFileRoute("/garisek")({
+export const Route = createFileRoute("/garisek/$area")({
   beforeLoad: ({ context }) => {
     if (
       context.authGateState.status !== "authenticated" &&

@@ -1,87 +1,91 @@
 import { useLocation, useRouter } from "@tanstack/react-router";
-import { CodeXmlIcon, LayoutDashboardIcon, type LucideIcon } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-import { Tooltip, TooltipPopup, TooltipTrigger } from "../components/ui/tooltip";
-import { isElectron } from "../env";
-import { cn } from "../lib/utils";
+import { AreaRail } from "./AreaRail";
+import {
+  GARISEK_AREA_PREFIX,
+  garisekAreaById,
+  garisekAreaForPath,
+  railSelectionFor,
+  type Area,
+  type GarisekArea,
+} from "./areas";
+import { garisekShell, type GarisekShell } from "./garisekShell";
+import { GarisekWebview, type GarisekOpenRequest } from "./GarisekWebview";
 
-type AreaId = "code" | "garisek";
-
-export const GARISEK_AREA_PATH = "/garisek";
-
-const AREAS: ReadonlyArray<{
-  readonly id: AreaId;
-  readonly label: string;
-  readonly icon: LucideIcon;
-}> = [
-  { id: "code", label: "Code", icon: CodeXmlIcon },
-  { id: "garisek", label: "Garisek", icon: LayoutDashboardIcon },
-];
-
-function areaForPath(pathname: string): AreaId {
-  return pathname === GARISEK_AREA_PATH || pathname.startsWith(`${GARISEK_AREA_PATH}/`)
-    ? "garisek"
-    : "code";
-}
+const GARISEK_SETTINGS_PATH = "/settings/garisek";
 
 export function GarisekAreaFrame({ children }: { children: ReactNode }) {
-  if (!isElectron) return children;
-  return <AreaFrame>{children}</AreaFrame>;
+  if (garisekShell === undefined) return children;
+  return <AreaFrame shell={garisekShell}>{children}</AreaFrame>;
 }
 
-function AreaFrame({ children }: { children: ReactNode }) {
+function AreaFrame({ shell, children }: { shell: GarisekShell; children: ReactNode }) {
   const router = useRouter();
   const pathname = useLocation({ select: (location) => location.pathname });
   const href = useLocation({ select: (location) => location.href });
-  const area = areaForPath(pathname);
-  const [lastCodeHref, setLastCodeHref] = useState(href);
-  if (area === "code" && lastCodeHref !== href) setLastCodeHref(href);
-  // The Garisek page mounts on first visit and then stays mounted, so switching areas keeps its state.
-  const [garisekVisited, setGarisekVisited] = useState(area === "garisek");
-  if (area === "garisek" && !garisekVisited) setGarisekVisited(true);
+  const selection = railSelectionFor(pathname);
+  const garisekArea = selection.kind === "garisek" ? selection.area : null;
+  const [lastCodeHref, setLastCodeHref] = useState(selection.kind === "code" ? href : "/");
+  if (selection.kind === "code" && lastCodeHref !== href) setLastCodeHref(href);
+  // The Garisek webview mounts on first visit and then stays mounted, so switching areas keeps its state.
+  const [garisekVisited, setGarisekVisited] = useState(garisekArea !== null);
+  if (garisekArea !== null && !garisekVisited) setGarisekVisited(true);
+  const [openRequest, setOpenRequest] = useState<GarisekOpenRequest | null>(null);
 
-  const openArea = (target: AreaId) => {
-    if (target === area) return;
-    router.history.push(target === "code" ? lastCodeHref : GARISEK_AREA_PATH);
+  const showGarisekArea = (area: GarisekArea, mode: "push" | "replace") => {
+    const current = railSelectionFor(router.state.location.pathname);
+    if (current.kind === "garisek" && current.area.id === area.id) return;
+    router.history[mode](`${GARISEK_AREA_PREFIX}${area.id}`);
+  };
+
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes to the desktop's requests to show a Garisek path (tray, shortcuts, deep links)
+  useEffect(
+    () =>
+      shell.onOpen((path) => {
+        setOpenRequest((previous) => ({ path, seq: (previous?.seq ?? 0) + 1 }));
+        const current = railSelectionFor(router.state.location.pathname);
+        // A page no area owns opens under the current Garisek area, else under Desk.
+        const owner =
+          garisekAreaForPath(path) ??
+          (current.kind === "garisek" ? current.area : garisekAreaById("desk"));
+        showGarisekArea(owner, "push");
+      }),
+    [router, shell, showGarisekArea],
+  );
+
+  const select = (area: Area) => {
+    if (area.target.kind === "code") {
+      if (selection.kind !== "code") router.history.push(lastCodeHref);
+      return;
+    }
+    showGarisekArea(garisekAreaById(area.id), "push");
   };
 
   return (
-    <div className="flex h-dvh w-full" data-garisek-area={area}>
-      <nav
-        aria-label="Areas"
-        className="drag-region flex w-12 shrink-0 flex-col items-center gap-1 border-r border-border bg-sidebar pt-2"
-      >
-        {AREAS.map(({ id, label, icon: Icon }) => (
-          <Tooltip key={id}>
-            <TooltipTrigger
-              render={
-                <button
-                  type="button"
-                  aria-label={label}
-                  aria-current={id === area ? "page" : undefined}
-                  data-area={id}
-                  onClick={() => openArea(id)}
-                  className={cn(
-                    "flex size-9 items-center justify-center rounded-md text-muted-foreground [-webkit-app-region:no-drag] hover:bg-accent hover:text-foreground",
-                    id === area && "bg-accent text-foreground",
-                  )}
-                >
-                  <Icon className="size-4.5" />
-                </button>
-              }
-            />
-            <TooltipPopup side="right">{label}</TooltipPopup>
-          </Tooltip>
-        ))}
-      </nav>
-      {/* Layout containment makes this box the containing block for the sidebar's fixed positioning. */}
+    <div
+      className="flex h-dvh w-full bg-sidebar"
+      data-garisek-area={garisekArea?.id ?? selection.kind}
+    >
+      <AreaRail
+        selection={selection}
+        onSelect={select}
+        onSettings={() => {
+          if (selection.kind !== "settings") router.history.push(GARISEK_SETTINGS_PATH);
+        }}
+      />
+      {/* Layout containment makes this box the containing block for the thread sidebar's fixed positioning. */}
       <div className="relative min-w-0 flex-1 [contain:layout]">
-        <div className={area === "code" ? "contents" : "hidden"}>{children}</div>
+        <div className={garisekArea === null ? "contents" : "hidden"}>{children}</div>
         {garisekVisited ? (
-          <div
-            className={cn("absolute inset-0", area !== "garisek" && "invisible")}
-            data-garisek-surface=""
+          <GarisekWebview
+            area={garisekArea}
+            request={openRequest}
+            onGuestArea={(area) => {
+              if (railSelectionFor(router.state.location.pathname).kind === "garisek") {
+                showGarisekArea(area, "replace");
+              }
+            }}
           />
         ) : null}
       </div>
